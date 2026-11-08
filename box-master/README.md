@@ -24,13 +24,14 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 
 ## Librería actual
 
-8 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
+10 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
 
 | Caja | SO | Vector estrella |
 |---|---|---|
 | Keystone · Ledger · Cobalt | Linux | SSTI · capabilities · Redis unauth |
 | Vault · Sentinel · Relay | Mixto/AD | SMB + SeImpersonate · AD · LD_PRELOAD |
 | Mint · Harbor | Linux | LFI + NFS no_root_squash · SQLi + /etc/passwd |
+| Onyx · Basalt | AD | spray `pass=user` + PtH-spray a máquina · SeBackupPrivilege → NTDS |
 
 > 🌱 La librería crece cada vez que juego o rooteo una caja nueva. Siguiente objetivo: añadir specs de cadenas de **Active Directory** más largas (pivoting + delegación).
 
