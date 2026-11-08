@@ -5,5 +5,6 @@ Writeups **sanitizados**: me centro en la **metodología, el razonamiento y las 
 | Caja | Plataforma | Tipo | Lo que entrena |
 |---|---|---|---|
 | [Reset](./reset-thm-ad.md) | TryHackMe | Active Directory (standalone) | De `null session` a Domain Admin: cadena de ACLs + delegación constrained |
+| [Raz0rblack](./raz0rblack-thm-ad.md) | TryHackMe | Active Directory (standalone) | De `null` a Domain Admin: AS-REP + Kerberoast + abuso de `SeBackupPrivilege` (NTDS → PtH) |
 
 > 🌱 Se amplía con cada máquina que rooteo. Prioridad: Active Directory puro y pivoting.
