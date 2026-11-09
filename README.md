@@ -17,7 +17,7 @@ Vengo de **Telecomunicaciones + un Máster en Ciberseguridad**, con experiencia 
 
 | Sección | Qué es | Estado |
 |---|---|---|
-| [🎮 **Box Master**](./box-master) | Herramienta propia de **gamificación** para entrenar pentesting (y entrenar LLMs como "máquina + coach"). Un Game Master + librería de cajas simuladas. | 🌱 12 cajas, creciendo |
+| [🎮 **Box Master**](./box-master) | Herramienta propia de **gamificación** para entrenar pentesting (y entrenar LLMs como "máquina + coach"). Un Game Master + librería de cajas simuladas. | 🌱 13 cajas, creciendo |
 | [🧠 **Methodology**](./methodology) | Mi metodología de ataque **reordenada por lógica de decisión**: árboles anti-bloqueo para no quedarme en blanco. | 🌱 Semilla |
 | [📝 **Writeups**](./writeups) | Writeups **sanitizados** (metodología y lecciones, sin spoilear la sala). Empezando por Active Directory. | 🌱 Reset (AD) |
 | [🛡️ **SOC**](./soc) | Lado defensivo: progreso en el SOC path, SC-200 y roadmap de certs. | 🌱 En curso |

