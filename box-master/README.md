@@ -24,7 +24,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 
 ## Librería actual
 
-13 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
+14 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
 
 | Caja | SO | Vector estrella |
 |---|---|---|
@@ -35,6 +35,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 | Thornbury | Linux | LFI → log poisoning → cred reuse → **tar wildcard injection** |
 | Marwick | Linux | command injection (bypass filtro) → id_rsa 644 → **PATH hijacking** |
 | Blackmoor | Windows | Tomcat default creds → **WAR deploy RCE** → SeImpersonate → PrintSpoofer |
+| Quill | Linux | FTP anónimo → id_rsa (passphrase, ssh2john) → **sudo awk (GTFOBins)** |
 
 > 🌱 La librería crece cada vez que juego o rooteo una caja nueva. Siguiente objetivo: añadir specs de cadenas de **Active Directory** más largas (pivoting + delegación).
 
