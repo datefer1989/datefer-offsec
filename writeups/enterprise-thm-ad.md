@@ -62,5 +62,5 @@ sc stop <servicio> & sc start <servicio>     :: o reboot
 3. **Kerberoast tras el primer foothold** = pan de cada día en AD.
 4. **Unquoted Service Path, a mano:** `wmic/findstr` (path vulnerable) → `icacls` (carpeta escribible) → `sc qc` (corre como SYSTEM). Las 3 ✅ = SYSTEM. El exe se llama como la palabra antes del espacio en el punto de truncamiento escribible más a la izquierda.
 
-## (Stretch) Cross-domain al dominio padre
-DA del hijo → para **Enterprise Admin** del padre: krbtgt del hijo + **SID History** (golden inter-realm) con el SID de Enterprise Admins. Pendiente.
+## Cierre
+`SYSTEM` en LAB-DC = **Domain Admin de LAB** (el DC es la propia máquina). Tras volcar/rociar credenciales en el dominio, una da **Pwned** → objetivo cumplido. El salto al dominio **padre** (`ENTERPRISE.THM`, Enterprise Admin) sería un extra de laboratorio, **no requerido** por la room.
