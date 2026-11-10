@@ -1216,6 +1216,69 @@ noise:
 
 ---
 
+## Box 17 — `Hollowfield`
+
+```
+id: 17
+name: Hollowfield
+os: linux
+difficulty: medium
+est_time: 40-60 min
+tags: [snmp, udp, process-args-leak, password-reuse, docker-group, privesc]
+
+target_ip: 10.10.14.160
+tun0_ip: 10.11.0.7
+
+services:
+  22: OpenSSH 8.9p1
+  80: Apache (web "Under Construction" = relleno)
+  161/udp: SNMP (community 'public')   <- SOLO sale en el -sU
+
+surface:
+  - TCP: 22 + 80 (web vacía). La clave está en UDP -> 161 SNMP.
+  - SNMP public -> hrSWRunParameters (…25.4.2.1.5) expone args de procesos: un sync.py con --password en la CLI.
+
+chain:
+  - step: foothold-snmp-args
+    trigger: SNMP public + proceso con creds en args
+    technique: SNMP hrSWRunParameters -> creds en CLI -> SSH
+    cheat_ref: [[14-servicios]] (SNMP)
+    aha: NO olvidar -sU; los ARGS de procesos (…4.2.1.5) chivan passwords pasadas por línea de comandos
+    expected_action: "snmpwalk -v2c -c public IP 1.3.6.1.2.1.25.4.2.1.5 -> svcbackup:Backup#Sync2024 -> ssh"
+    hints:
+      - "web vacía -> ¿hiciste UDP? 161 SNMP. 14-servicios."
+      - "community public; mira los PARÁMETROS de procesos, no solo nombres (…25.4.2.1.5)."
+      - "un proceso corre con --password en la CLI -> esas creds van a SSH."
+    resultado: SSH como svcbackup -> user flag
+  - step: privesc-docker-group
+    trigger: id muestra grupo docker
+    technique: grupo docker -> montar / del host -> root
+    cheat_ref: [[07-privesc-linux]] (Grupo docker)
+    aha: misdirección (svcbackup/sync.py huele a cron/pspy) PERO el id dice groups=...,docker = root directo
+    expected_action: "docker run -v /:/mnt --rm -it alpine chroot /mnt sh"
+    hints:
+      - "antes de sudo -l/SUID: LEE el id/groups. ¿grupo peligroso?"
+      - "grupo docker = root de facto (montas el host en un contenedor)."
+      - "docker run -v /:/mnt --rm -it alpine chroot /mnt sh"
+    resultado: root
+    noise_trap: svcbackup + sync.py invita a perseguir un cron con pspy (rabbit hole)
+
+creds:
+  - svcbackup : Backup#Sync2024   (SNMP process args; SSH)
+
+flags:
+  user: 2f8a0c7194d3e8650b1a7c9f6d2b0e43
+  root: 7c1e0b3a94f2d8650c1a7f9b4e6d2038
+
+noise:
+  - web 80 vacía; TCP sin vector -> la gente que no hace -sU se queda atascada.
+  - svcbackup/sync.py = cebo para perseguir cron/pspy; el privesc real es el grupo docker (mira el id).
+```
+
+**Lección pedagógica:** **no olvidar `-sU`** (SNMP solo en UDP); **SNMP `hrSWRunParameters` expone los args de procesos** → passwords pasadas por CLI al aire → SSH; y **`id`/`groups` SIEMPRE antes del privesc** → **grupo `docker` = root** (`docker run -v /:/mnt ... chroot /mnt sh`). Misdirección: el nombre `svcbackup`+`sync.py` invita a perseguir un cron con pspy (rabbit hole).
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
