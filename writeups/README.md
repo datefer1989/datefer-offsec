@@ -9,5 +9,6 @@ Writeups **sanitizados**: me centro en la **metodología, el razonamiento y las 
 | [SoupedeCode 01](./soupedecode01-thm-ad.md) | TryHackMe | Active Directory (standalone) | De `null` a Domain Admin: password spray (`pass=user`) + Kerberoast + PtH-spray a cuenta de máquina |
 | [Enterprise](./enterprise-thm-ad.md) | TryHackMe | Active Directory (dominio hijo) | Foothold por fuga de credencial en historial de Git + Kerberoast → SYSTEM por **Unquoted Service Path** |
 | [Kenobi](./kenobi-thm-linux.md) | TryHackMe | Linux | Encadenar SMB + **ProFTPD mod_copy** + **NFS** → SSH → **SUID PATH hijacking** |
+| [Twiggy](./twiggy-pg-linux.md) | Proving Grounds | Linux | **SaltStack** CVE-2020-11651 → RCE root; y qué hacer cuando el PoC no compila y MSF no da shell |
 
 > 🌱 Se amplía con cada máquina que rooteo. Prioridad: Active Directory puro y pivoting.
