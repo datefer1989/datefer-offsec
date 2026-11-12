@@ -8,5 +8,6 @@ Writeups **sanitizados**: me centro en la **metodología, el razonamiento y las 
 | [Raz0rblack](./raz0rblack-thm-ad.md) | TryHackMe | Active Directory (standalone) | De `null` a Domain Admin: AS-REP + Kerberoast + abuso de `SeBackupPrivilege` (NTDS → PtH) |
 | [SoupedeCode 01](./soupedecode01-thm-ad.md) | TryHackMe | Active Directory (standalone) | De `null` a Domain Admin: password spray (`pass=user`) + Kerberoast + PtH-spray a cuenta de máquina |
 | [Enterprise](./enterprise-thm-ad.md) | TryHackMe | Active Directory (dominio hijo) | Foothold por fuga de credencial en historial de Git + Kerberoast → SYSTEM por **Unquoted Service Path** |
+| [Kenobi](./kenobi-thm-linux.md) | TryHackMe | Linux | Encadenar SMB + **ProFTPD mod_copy** + **NFS** → SSH → **SUID PATH hijacking** |
 
 > 🌱 Se amplía con cada máquina que rooteo. Prioridad: Active Directory puro y pivoting.
