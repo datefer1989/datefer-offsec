@@ -24,7 +24,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 
 ## Librería actual
 
-17 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
+18 cajas simuladas cubriendo vectores que **se usan poco y conviene tener frescos**:
 
 | Caja | SO | Vector estrella |
 |---|---|---|
@@ -39,6 +39,7 @@ El objetivo pedagógico: convertir las **fases abiertas** (decidir qué mirar) e
 | Cindermark | Linux | upload `.phtml` bypass → cred reuse → **Python module hijacking** |
 | Ravenscar | Windows | creds en share SMB → WinRM → **AlwaysInstallElevated** (MSI) |
 | Hollowfield | Linux | SNMP (args de proceso) → cred reuse → **grupo docker** → root |
+| Stormhaven | Linux | **JWT secreto débil** (forge admin) → RCE → NFS no_root_squash |
 
 > 🌱 La librería crece cada vez que juego o rooteo una caja nueva. Siguiente objetivo: añadir specs de cadenas de **Active Directory** más largas (pivoting + delegación).
 
