@@ -21,6 +21,7 @@ Vengo de **Telecomunicaciones + un Máster en Ciberseguridad**, con experiencia 
 | [🧠 **Methodology**](./methodology) | Mi metodología de ataque **reordenada por lógica de decisión**: árboles anti-bloqueo para no quedarme en blanco. | 🌱 Semilla |
 | [📝 **Writeups**](./writeups) | Writeups **sanitizados** (metodología y lecciones, sin spoilear la sala). Empezando por Active Directory. | 🌱 Reset (AD) |
 | [🧪 **PoCs**](./pocs) | Exploits **funcionales** que escribo/reescribo cuando los públicos no arrancan. Primero: SaltStack RCE (CVE-2020-11651) sin dependencias. | 🌱 SaltStack |
+| [🛠️ **Techniques**](./techniques) | Notas cortas y reutilizables de técnicas recurrentes, para enlazar desde los writeups. | 🌱 Magic Rev Shell |
 | [🛡️ **SOC**](./soc) | Lado defensivo: progreso en el SOC path, SC-200 y roadmap de certs. | 🌱 En curso |
 
 > 🌱 = semilla publicada, se amplía a medida que avanzo. Este repo está **vivo**.
