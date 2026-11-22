@@ -13,5 +13,6 @@ Writeups **sanitizados**: me centro en la **metodología, el razonamiento y las 
 | [Exfiltrated](./exfiltrated-pg-linux.md) | Proving Grounds | Linux | Subrion upload → cron de root con **exiftool** sobre dir escribible → **CVE-2021-22204** |
 | [Astronaut](./astronaut-pg-linux.md) | Proving Grounds | Linux | **Grav CMS** Scheduler RCE → **SUID php** (`pcntl_exec -p`) → root |
 | [Algernon](./algernon-pg-windows.md) | Proving Grounds | Windows | **SmarterMail** .NET Remoting deserialization (**CVE-2019-7214**) → SYSTEM |
+| [Jacko](./jacko-pg-windows.md) | Proving Grounds | Windows | **H2 Database** console RCE (DLL nativo, sin javac) → **SeImpersonate → GodPotato** → SYSTEM |
 
 > 🌱 Se amplía con cada máquina que rooteo. Prioridad: Active Directory puro y pivoting.
