@@ -14,5 +14,6 @@ Writeups **sanitizados**: me centro en la **metodología, el razonamiento y las 
 | [Astronaut](./astronaut-pg-linux.md) | Proving Grounds | Linux | **Grav CMS** Scheduler RCE → **SUID php** (`pcntl_exec -p`) → root |
 | [Algernon](./algernon-pg-windows.md) | Proving Grounds | Windows | **SmarterMail** .NET Remoting deserialization (**CVE-2019-7214**) → SYSTEM |
 | [Jacko](./jacko-pg-windows.md) | Proving Grounds | Windows | **H2 Database** console RCE (DLL nativo, sin javac) → **SeImpersonate → GodPotato** → SYSTEM |
+| [Slort](./slort-pg-windows.md) | Proving Grounds | Windows | XAMPP **RFI** → RCE → **tarea programada con binario escribible** → SYSTEM |
 
 > 🌱 Se amplía con cada máquina que rooteo. Prioridad: Active Directory puro y pivoting.
