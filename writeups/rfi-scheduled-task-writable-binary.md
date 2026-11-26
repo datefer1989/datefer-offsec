@@ -1,4 +1,4 @@
-# Slort (Proving Grounds) — RFI (XAMPP) + tarea programada con binario escribible
+# RFI (XAMPP) + tarea programada con binario escribible → SYSTEM
 
 > **Writeup sanitizado.** Flags redactadas. Metodología y razonamiento, sin regalar la sala.
 

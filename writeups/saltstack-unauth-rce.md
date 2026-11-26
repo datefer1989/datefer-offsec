@@ -1,4 +1,4 @@
-# Twiggy (Proving Grounds) — SaltStack RCE y qué hacer cuando el PoC no arranca
+# SaltStack unauth RCE — y qué hacer cuando el PoC no arranca
 
 > **Writeup sanitizado.** Flags y claves redactadas. El valor de esta caja no fue el CVE (conocido), sino el **troubleshooting**: qué haces cuando el exploit público no compila y Metasploit no te devuelve la shell.
 
@@ -10,7 +10,7 @@
 ## 1. Recon — el vector está en lo raro, no en el :80
 - **4505 / 4506** hablando **ZeroMQ (ZMTP)** → firma de **SaltStack `salt-master`** (publish + request).
 - **8000** devolviendo JSON → **salt-api**.
-- **80** (Mezzanine CMS) → distracción.
+- **80** (un CMS cualquiera) → distracción.
 
 > **Lección — leer el nmap como "1 app + N puertos de plumbing".** Dos puertos altos hablando ZeroMQ no son ruido: son el servicio objetivo. Reconocer la tecnología (SaltStack) es medio exploit.
 

@@ -1,8 +1,8 @@
-# Scrutiny (Proving Grounds) — vhost por certificado + TeamCity auth bypass + lateral encadenado + pager de sudo
+# vhost por certificado + TeamCity auth bypass + lateral encadenado + pager de sudo → root
 
 > **Writeup sanitizado.** Flags y credenciales redactadas. Metodología y razonamiento, sin regalar la sala.
 
-**Tipo:** Linux (Ubuntu 20.04) · Intermediate
+**Tipo:** Linux · Intermediate
 **Cadena:** `cert/web → vhost → TeamCity auth bypass (CVE-2024-27198) → clave SSH crackeada → correo local → fichero oculto + GECOS → sudo systemctl status (CVE-2023-26604) → root`
 
 ---
@@ -24,9 +24,9 @@ Al entrar por SSH, el **MOTD** avisa `You have mail.` — la caja te está seña
 
 > **Lección — el correo local es fuente nº1 de credenciales.** `/var/mail/<user>` (mbox) tenía un email de un **ex-empleado** cuyas credenciales seguían activas (fallo de offboarding). Con ellas, `su` al segundo usuario.
 
-> **Lección — un NOMBRE PROPIO en el loot no es un login: mapéalo por GECOS.** En el home del segundo usuario, un **fichero oculto con nombre engañoso** (`.~`, permisos `-r--------`) revelaba la contraseña de *"Dach"*. "Dach" no es una cuenta. El **5º campo de `/etc/passwd` (GECOS)** guarda el nombre completo:
+> **Lección — un NOMBRE PROPIO en el loot no es un login: mapéalo por GECOS.** En el home del segundo usuario, un **fichero oculto con nombre engañoso** (`.~`, permisos `-r--------`) revelaba la contraseña de *un apellido suelto* (no de un login). El **5º campo de `/etc/passwd` (GECOS)** guarda el nombre completo, así que ese apellido se mapea a su usuario:
 > ```bash
-> getent passwd | grep -i dach      # Brian Dach -> login briand
+> getent passwd | grep -i smith      # p.ej. "John Smith" -> login jsmith
 > ```
 > Resultado: tercer usuario, miembro de un grupo con sudo interesante.
 

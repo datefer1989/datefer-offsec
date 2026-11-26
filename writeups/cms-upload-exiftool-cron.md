@@ -1,4 +1,4 @@
-# Exfiltrated (Proving Grounds) — Subrion upload + exiftool cron (CVE-2021-22204)
+# CMS upload + exiftool cron (CVE-2021-22204) → root
 
 > **Writeup sanitizado.** Credenciales y flags redactadas. Metodología y razonamiento, sin regalar la sala.
 
@@ -8,7 +8,7 @@
 ---
 
 ## 1. Recon
-- **22** SSH · **80** Apache → redirige a `exfiltrated.offsec` (añadir vhost a `/etc/hosts`).
+- **22** SSH · **80** Apache → redirige a un vhost con nombre (añadir a `/etc/hosts`).
 - La web es **Subrion CMS**; `/panel/` revela la versión **4.2.1**.
 - `robots.txt` lista `/panel/ /cron/ /backup/ ...`
 
@@ -32,7 +32,7 @@ Un webshell es ejecución por HTTP: **no es interactivo**, así que `python3 -c 
 Enumeración de cron (más fiable leer la crontab que esperar a pspy):
 ```bash
 cat /etc/crontab
-# * * * * *  root  bash /opt/image-exif.sh
+# * * * * *  root  bash /opt/<script>.sh
 ```
 El script (no editable) ejecuta **`exiftool` como root** sobre **todas las imágenes** de un directorio de subidas **donde `www-data` puede escribir**.
 

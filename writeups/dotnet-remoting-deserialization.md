@@ -1,4 +1,4 @@
-# Algernon (Proving Grounds) — SmarterMail .NET deserialization (CVE-2019-7214)
+# SmarterMail .NET Remoting deserialization (CVE-2019-7214) → SYSTEM
 
 > **Writeup sanitizado.** Flags redactadas. Metodología y razonamiento, sin regalar la sala.
 

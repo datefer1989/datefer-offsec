@@ -1,4 +1,4 @@
-# Nukem (Proving Grounds) — WP plugin unauth upload + egress solo-80 + SUID con solo "File write"
+# WordPress plugin: unauth upload + egress solo-80 + SUID con solo "File write" → root
 
 > **Writeup sanitizado.** Flags y credenciales redactadas. Metodología y razonamiento, sin regalar la sala.
 

@@ -1,4 +1,4 @@
-# Peppo (Proving Grounds) — ident como oráculo de usuarios + Postgres por defecto + escape de rbash + grupo docker
+# PostgreSQL default creds + ident como oráculo de usuarios + escape de rbash + grupo docker → root
 
 > **Writeup sanitizado.** Flags y credenciales redactadas. Metodología y razonamiento, sin regalar la sala.
 > **Honestidad:** esta caja la resolví **con ayuda de guía** en tres puntos (el pivote de credenciales, el usuario de ident y el grupo docker). La dejo documentada precisamente por las lecciones que me costaron.

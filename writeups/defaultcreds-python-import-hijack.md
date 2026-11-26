@@ -1,4 +1,4 @@
-# Walla (Proving Grounds) — servidor ≠ aplicación + default creds + import hijacking de Python
+# Servidor ≠ aplicación + default creds + import hijacking de Python → root
 
 > **Writeup sanitizado.** Flags y credenciales redactadas. Metodología y razonamiento, sin regalar la sala.
 
@@ -21,7 +21,7 @@ El panel pide usuario y contraseña.
 
 ## 3. Privesc — `sudo -l`, el mismo binario con otro significado
 ```
-(ALL) NOPASSWD: /usr/bin/python /home/<user>/wifi_reset.py
+(ALL) NOPASSWD: /usr/bin/python /home/<user>/<script>.py
 (ALL) NOPASSWD: systemctl start|stop|restart <servicios>
 ```
 

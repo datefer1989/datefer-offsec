@@ -1,4 +1,4 @@
-# Astronaut (Proving Grounds) — Grav Scheduler RCE + SUID php
+# Grav CMS Scheduler RCE + SUID php → root
 
 > **Writeup sanitizado.** Flags redactadas. Metodología y razonamiento, sin regalar la sala.
 

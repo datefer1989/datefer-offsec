@@ -1,4 +1,4 @@
-# Jacko (Proving Grounds) — H2 Console RCE (native lib) + GodPotato
+# H2 Console RCE (native lib, sin javac) + GodPotato → SYSTEM
 
 > **Writeup sanitizado.** Flags redactadas. Metodología y razonamiento, sin regalar la sala.
 
@@ -21,7 +21,7 @@ Cannot run program "javac"
 
 > **Lección operativa — pelearse con un exploit "gigante".** El PoC de referencia es un **fichero de instrucciones** cuya línea que incrusta el DLL pesa cientos de KB (el binario byte a byte). Abrirlo en un editor gráfico o manejarlo por el portapapeles **lo rompe**. Se trabaja desde la terminal: leer el resto del fichero saltando esa línea, y volcar solo esa línea al portapapeles por CLI para pegarla una vez. El resto son comandos cortos que se teclean. **Dominar `sed`/`xclip` para esto ahorra muchísimo tiempo y frustración.**
 
-Con el DLL cargado y el alias `eval` creado, se obtiene ejecución de comandos como el usuario de servicio (`tony`), y desde ahí una reverse shell (descarga con `certutil` + ejecución). Detalle: **el PATH del proceso está recortado**, así que hay que usar **rutas absolutas** (`C:\Windows\System32\...`).
+Con el DLL cargado y el alias `eval` creado, se obtiene ejecución de comandos como el usuario de servicio, y desde ahí una reverse shell (descarga con `certutil` + ejecución). Detalle: **el PATH del proceso está recortado**, así que hay que usar **rutas absolutas** (`C:\Windows\System32\...`).
 
 ## 3. Privesc — SeImpersonate → GodPotato
 ```
